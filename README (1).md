@@ -118,42 +118,42 @@
 ### ISP
 ```
 hostnamectl set-hostname isp.au-team.irpo
-bash
+newgrp
 ```
 <br/>
 
 ### HQ-RTR
 ```
 hostnamectl set-hostname hq-rtr.au-team.irpo
-bash
+newgrp
 ```
 <br/>
 
 ### BR-RTR
 ```
 hostnamectl set-hostname br-rtr.au-team.irpo
-bash
+newgrp
 ```
 <br/>
 
 ### HQ-SRV
 ```
 hostnamectl set-hostname hq-srv.au-team.irpo
-bash
+newgrp
 ```
 <br/>
 
 ### HQ-CLI
 ```
 hostnamectl set-hostname hq-cli.au-team.irpo
-bash
+newgrp
 ```
 <br/>
 
 ### BR-SRV
 ```
 hostnamectl set-hostname br-srv.au-team.irpo
-bash
+newgrp
 ```
 <br/>
 
@@ -182,6 +182,28 @@ iface ens192 inet static
 address 172.16.4.2/28
 gateway 172.16.4.1
 
+auto ens224
+iface ens224 inet static
+address 192.168.100.1
+netmask 255.255.255.240
+
+auto ens224:1
+iface ens224:1 inet static 
+address 192.168.200.1
+netmask 255.255.255.240
+
+auto ens224.100
+iface ens224:100 inet static
+address 192.168.100.3
+netmask 255.255.255.192
+vlan-raw-device ens224
+
+auto ens224.200
+iface ens224:200 inet static
+address 192.168.200.3
+netmask 255.255.255.192
+vlan-raw-device ens224:1
+
 auto gre1
 iface gre1 inet tunnel
 address 172.16.0.1
@@ -190,8 +212,47 @@ mode gre
 local 172.16.4.2
 endpoint 172.16.5.2
 ttl 64
-```
 
+Ну 2 варик
+
+auto ens192  
+iface ens192 inet static  
+address 172.16.4.2/28
+gateway 172.16.4.1
+
+auto gre1
+iface gre1 inet tunnel
+address 172.16.0.1
+netmask 255.255.255.252
+mode gre
+local 172.16.4.2
+endpoint 172.16.5.2
+ttl 64
+  
+auto ens224  
+iface ens224 inet static  
+address 192.168.100.1/26 
+  
+auto ens224:1  
+iface ens224:1 inet static  
+address 192.168.200.1/28
+
+auto ens224:2  
+iface ens224:2 inet static  
+address 192.168.99.9/29
+
+auto ens224.100  
+iface ens224.100 inet manual   
+Vlan-raw-device ens224  
+  
+auto ens224.200  
+iface ens224.200 inet manual   
+Vlan-raw-device ens224:1
+
+auto ens224.999  
+iface ens224.999 inet manual   
+Vlan-raw-device ens224:2
+```
 ### BR-RTR: (в 6 задании продолжение)
 ```
 allow-hotplug ens192
@@ -458,21 +519,18 @@ iptables-save > /etc/iptables/rules.v4
 
 ### Создание локальных учетных записей
 
-- Создайте пользователя sshuser на серверах HQ-SRV и BR-SRV
+- Создайте локальные учетные записи на серверах HQ-SRV и BR-SRV:
+- Создайте пользователя sshuser
+ -Пароль пользователя sshuser с паролем P@ssw0rd
+- Идентификатор пользователя 2026
+ -Пользователь sshuser должен иметь возможность запускать sudo без
+ввода пароля
 
-  - Пароль пользователя sshuser с паролем P@ssw0rd
-
-  - Идентификатор пользователя 1010
-
-  - Пользователь sshuser должен иметь возможность запускать sudo без дополнительной аутентификации.
-
-- Создайте пользователя net_admin на маршрутизаторах HQ-RTR и BR-RTR
-
-  - Пароль пользователя net_admin с паролем P@$$word
-
-  - При настройке на EcoRouter пользователь net_admin должен обладать максимальными привилегиями
-
-  - При настройке ОС на базе Linux, запускать sudo без дополнительной аутентификации
+Создайте пользователя net_admin на маршрутизаторах HQ-RTR и BRRTR
+• Пароль пользователя net_admin с паролем P@ssw0rd
+• При настройке ОС на базе Linux, запускать sudo без ввода пароля
+• При настройке ОС отличных от Linux пользователь должен обладать
+максимальными привилегиями
  
 </details>
 
@@ -486,7 +544,7 @@ iptables-save > /etc/iptables/rules.v4
 
 **1.** Создаём sshuser следующими командами:
 ```
-useradd sshuser -u 1010
+useradd sshuser -u 2026
 passwd sshuser
 P@ssw0rd
 ```
@@ -569,7 +627,7 @@ chmod 700 /home/net_admin
 <summary><strong>[ОПИСАНИЕ ЗАДАНИЙ]</strong></summary>
 
 ### Настройте на интерфейсе `HQ-RTR` в сторону офиса `HQ` виртуальный коммутатор
-
+  НЕ ЕБУ КАК ДЕЛАЕТСЯ
 - Сервер HQ-SRV должен находиться в ID VLAN 100
 - Клиент HQ-CLI в ID VLAN 200
 - Создайте подсеть управления с ID VLAN 999
@@ -637,6 +695,35 @@ Vlan-raw-device ens224:1
 auto ens224.999  
 iface ens224.999 inet manual   
 Vlan-raw-device ens224:2
+
+2 варик
+
+allow-hotplug ens192
+iface ens192 inet static
+address 172.16.4.2/28
+gateway 172.16.4.1
+
+auto ens224
+iface ens224 inet static
+address 192.168.100.1
+netmask 255.255.255.240
+
+auto ens224:1
+iface ens224:1 inet static 
+address 192.168.200.1
+netmask 255.255.255.240
+
+auto ens224.100
+iface ens224:100 inet static
+address 192.168.100.3
+netmask 255.255.255.192
+vlan-raw-device ens224
+
+auto ens224.200
+iface ens224:200 inet static
+address 192.168.200.3
+netmask 255.255.255.192
+vlan-raw-device ens224:1
 ```
 
 </details>
@@ -650,7 +737,7 @@ Vlan-raw-device ens224:2
 
 ### Настройка безопасного удаленного доступа на серверах `HQ-SRV` и `BR-SRV`
 
-- Для подключения используйте порт 2024
+- Для подключения используйте порт 2026
 - Разрешите подключения только пользователю sshuser
 - Ограничьте количество попыток входа до двух
 - Настройте баннер «Authorized access only»
@@ -677,7 +764,7 @@ nano /etc/ssh/sshd_config
 ```
 
 ```
-Port 2024
+Port 2026
 MaxAuthTries 2
 PasswordAuthentication yes
 Banner /etc/ssh/banner
@@ -1001,7 +1088,7 @@ systemctl start iproute.service
 
 ## > Настройка динамической трансляции адресов <
 
-> ### Настройка на `ISP` выполнена в [Задании 2](https://github.com/Flicks1383/Demo09.02.06_2025/tree/main/module1#задание-2)
+> ### Настройка на `ISP` выполнена в Задание 2
 
 ### Настройка динамической сетевой трансляции на `HQ-RTR`
 ```
