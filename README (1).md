@@ -3,7 +3,7 @@
 <br/>
 
 <p align="center">
-  <img width="450" height="600" src="https://github.com/user-attachments/assets/8ee209f5-6fed-4f03-bbe3-e202155957b3"
+  <img width="450" height="600" src="https://yapx.ru/album/dWWkF"
 <p\>
 <p align="center"><strong>Топология</strong></p>
 </p>
