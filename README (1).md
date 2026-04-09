@@ -27,7 +27,7 @@
 >```
 ></br>
 >
-> На **РОУТЕРАХ** sysctl -p:
+> На **РОУТЕРАХ И СЕРВЕРАХ (Диман для тебя)** sysctl -p:
 >```
 > echo net.ipv4.ip_forward=1 > /etc/sysctl.conf
 >```
@@ -99,7 +99,7 @@
 - IP-адрес должен быть из приватного диапазона, в случае, если сеть локальная, согласно RFC1918
 - Локальная сеть в сторону HQ-SRV(VLAN100) должна вмещать не более 64 адресов
 - Локальная сеть в сторону HQ-CLI(VLAN200) должна вмещать не более 16 адресов
-- Локальная сеть в сторону BR-SRV должна вмещать не более 32 адресов
+- Локальная сеть в сторону BR-SRV должна вмещать не более 16 адресов
 - Локальная сеть для управления(VLAN999) должна вмещать не более 8 адресов
 - Сведения об адресах занесите в отчёт, в качестве примера используйте Таблицу 3
 
@@ -160,117 +160,83 @@ newgrp
 </details>
 
 <details>
-<summary><strong>Настройка адрессации в файле <code>nano etc/network/interfaces</code></strong></summary>
+<summary><strong>Настройка адрессации в файле <code>nano /etc/network/interfaces</code></strong></summary>
 <br/>
 
 ### Настройка адресации (кроме HQ-CLI(он позже))
 ##
 ### ISP:
 ```
+НЕТРОГАТЬ ENS192
+
 auto ens224
 iface ens224 inet static
-address 172.16.4.1/28
+address 172.16.1.1/28
+
 auto ens256
 iface ens256 inet static
-address 172.16.5.1/28
+address 172.16.2.1/28
 ```
 
 ### HQ-RTR: (в 4 и 6 задании продолжение)
 ```
-allow-hotplug ens192
+auto ens192
 iface ens192 inet static
-address 172.16.4.2/28
-gateway 172.16.4.1
+address 172.16.1.2/28
+gateway 172.16.1.1
 
 auto ens224
 iface ens224 inet static
-address 192.168.100.1
-netmask 255.255.255.240
-
-auto ens224:1
-iface ens224:1 inet static 
-address 192.168.200.1
+address 192.168.1.1
 netmask 255.255.255.240
 
 auto ens224.100
-iface ens224:100 inet static
-address 192.168.100.3
-netmask 255.255.255.192
-vlan-raw-device ens224
+iface ens224.100 inet static
+address 192.168.1.3
+netmask 255.255.255.224
+Vlan-raw-device ens224
 
 auto ens224.200
-iface ens224:200 inet static
-address 192.168.200.3
-netmask 255.255.255.192
-vlan-raw-device ens224:1
+iface ens224.200 inet static
+address 192.168.2.2
+netmask 255.255.255.240
+Vlan-raw-device ens224
+
+auto ens224.99
+iface ens224.99 inet static
+address 192.168.99.1
+netmask 255.255.255.248
+Vlan-raw-device ens224
 
 auto gre1
 iface gre1 inet tunnel
 address 172.16.0.1
 netmask 255.255.255.252
 mode gre
-local 172.16.4.2
-endpoint 172.16.5.2
-ttl 64
-
-Ну 2 варик
-
-auto ens192  
-iface ens192 inet static  
-address 172.16.4.2/28
-gateway 172.16.4.1
-
-auto gre1
-iface gre1 inet tunnel
-address 172.16.0.1
-netmask 255.255.255.252
-mode gre
-local 172.16.4.2
-endpoint 172.16.5.2
+local 172.16.1.2
+endpoint 172.16.2.2
 ttl 64
   
-auto ens224  
-iface ens224 inet static  
-address 192.168.100.1/26 
-  
-auto ens224:1  
-iface ens224:1 inet static  
-address 192.168.200.1/28
 
-auto ens224:2  
-iface ens224:2 inet static  
-address 192.168.99.9/29
-
-auto ens224.100  
-iface ens224.100 inet manual   
-Vlan-raw-device ens224  
-  
-auto ens224.200  
-iface ens224.200 inet manual   
-Vlan-raw-device ens224:1
-
-auto ens224.999  
-iface ens224.999 inet manual   
-Vlan-raw-device ens224:2
 ```
 ### BR-RTR: (в 6 задании продолжение)
 ```
 allow-hotplug ens192
 iface ens192 inet static
-address 172.16.5.2/28
-gateway 172.16.5.1
+address 172.16.2.2/28
+gateway 172.16.2.1
 
 auto ens224
 iface ens224 inet static
-address 192.168.0.1/27
+address 192.168.4.1/28
 
 auto gre1
 iface gre1 inet tunnel
 address 172.16.0.2
 netmask 255.255.255.252
 mode gre
-local 172.16.5.2
-endpoint 172.16.4.2
+local 172.16.2.2
+endpoint 172.16.1.2
 ttl 64
 ```
 
@@ -279,10 +245,8 @@ ttl 64
 ```
 allow-hotplug ens192
 iface ens192 inet static
-address 192.168.0.2/27
-gateway 192.168.0.1
-dns-nameservers 192.168.100.62 192.168.0.2
-dns-search au-team.irpo
+address 192.168.4.2/28
+gateway 192.168.4.1
 ```
 
 ### HQ-SRV:
@@ -290,7 +254,7 @@ dns-search au-team.irpo
 ```
 allow-hotplug ens192
 iface ens192 inet static
-address 192.168.100.62/26
+address 192.168.1.2/27
 gateway 192.168.100.1
 ```
 
