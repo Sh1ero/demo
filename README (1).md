@@ -8,8 +8,8 @@
 <p align="center"><strong>SVEG 2026</strong></p>
 </p>
 
-
 <br/>
+
 > [!WARNING]
 > ## ПРЕДНАСТРОЙКА
 > На всех устройствах, кроме **ISP**:
