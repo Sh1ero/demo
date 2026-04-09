@@ -5,9 +5,9 @@
 <p align="center">
   <img width="450" height="600" src="https://i.yapx.ru/dWWkM.jpg"
 <p\>
-<p align="center"><strong>Топология</strong></p>
+<p align="center"><strong>SVEG 2026</strong></p>
 </p>
-<p align="center"><strong>Топология</strong></p>
+
 
 <br/>
 
