@@ -13,14 +13,6 @@
 
 > [!WARNING]
 > ## ПРЕДНАСТРОЙКА
->
-> ```
-> systemctl stop NetworkManager
-> systemctl disable NetworkManager
-> systemctl mask NetworkManager
-> ```
-></br>
->
 > На всех устройствах, кроме **ISP**:
 >```
 >nano /etc/resolv.conf
