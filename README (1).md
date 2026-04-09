@@ -3,7 +3,8 @@
 <br/>
 
 <p align="center">
-  <img src="https://i.pinimg.com/originals/e3/36/e8/e336e83334c947077c9d117d7ad7b1d5.jpg" alt="Топология" />
+  <img src="<img width="640" height="640" alt="image" src="https://github.com/user-attachments/assets/58b9fcbb-e2f7-4199-9782-620e7a7603a8" />
+" alt="Топология" />
 </p>
 <p align="center"><strong>Топология</strong></p>
 
