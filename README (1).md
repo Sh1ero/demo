@@ -160,7 +160,7 @@ newgrp
 ##
 ### ISP:
 ```
-НЕТРОГАТЬ ENS192
+#НЕТРОГАТЬ ENS192
 
 auto ens224
 iface ens224 inet static
