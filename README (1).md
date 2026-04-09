@@ -3,8 +3,9 @@
 <br/>
 
 <p align="center">
-  <img src="<img width="640" height="640" alt="image" src="https://yapx.ru/album/dWWkF" />
-" alt="Топология" />
+  <img width="450" height="600" src="https://github.com/user-attachments/assets/8ee209f5-6fed-4f03-bbe3-e202155957b3"
+<p\>
+<p align="center"><strong>Топология</strong></p>
 </p>
 <p align="center"><strong>Топология</strong></p>
 
