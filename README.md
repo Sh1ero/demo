@@ -1,7 +1,11 @@
 # *Demo2025 - Модуль 2*
 
 ### **[Задание](https://github.com/damh66/demo2025/blob/main/%D0%9A%D0%9E%D0%94%2009.02.06-1-2025%20%D0%A2%D0%BE%D0%BC%201%20(%D1%81%D0%BE%D0%BA%D1%80).pdf)**
-
+<p align="center">
+  <img width="450" height="600" src="https://i.yapx.ru/dWWkM.jpg"
+<p\>
+<p align="center"><strong>SVEG 2026</strong></p>
+</p>
 #
 
 ### Содержание
