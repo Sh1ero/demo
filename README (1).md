@@ -24,7 +24,7 @@
 > На всех устройствах, кроме **ISP**:
 >```
 >nano /etc/resolv.conf
->nameserver 77.88.8.8
+>nameserver 8.8.8.8
 >nameserver 1.1.1.1
 >```
 ></br>
