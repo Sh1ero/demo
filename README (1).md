@@ -276,9 +276,9 @@ gateway 192.168.100.1
 
   - Настройте маршруты по умолчанию там, где это необходимо 
 
-  - Интерфейс, к которому подключен HQ-RTR, подключен к сети 172.16.4.0/28 **[Выполнено в задании 1]**
+  - Интерфейс, к которому подключен HQ-RTR, подключен к сети 172.16.1.0/28 **[Выполнено в задании 1]**
 
-  - Интерфейс, к которому подключен BR-RTR, подключен к сети 172.16.5.0/28 **[Выполнено в задании 1]**
+  - Интерфейс, к которому подключен BR-RTR, подключен к сети 172.16.2.0/28 **[Выполнено в задании 1]**
 
   - На ISP настройте динамическую сетевую трансляцию в сторону HQ-RTR и BR-RTR для доступа к сети Интернет
 
@@ -298,8 +298,8 @@ echo net.ipv4.ip_forward=1 > /etc/sysctl.conf
 apt-get install iptables iptables-persistent –y
 ```
 ```
-iptables –t nat –A POSTROUTING –s 172.16.4.0/28 –o ens192 –j MASQUERADE  
-iptables –t nat –A POSTROUTING –s 172.16.5.0/28 –o ens192 –j MASQUERADE
+iptables –t nat –A POSTROUTING –s 172.16.1.0/28 –o ens192 –j MASQUERADE  
+iptables –t nat –A POSTROUTING –s 172.16.2.0/28 –o ens192 –j MASQUERADE
 netfilter-persistent save
 systemctl restart netfilter-persistent  
 ```
@@ -312,8 +312,8 @@ systemctl restart netfilter-persistent
 ```  
 apt install iptables  
 apt install iptables iptables-persistent  
-iptables –t nat –A POSTROUTING –s 172.16.4.0/28 –o ens192 –j MASQUERADE   
-iptables –t nat –A POSTROUTING –s 172.16.5.0/28 –o ens192 –j MASQUERADE   
+iptables –t nat –A POSTROUTING –s 172.16.1.0/28 –o ens192 –j MASQUERADE   
+iptables –t nat –A POSTROUTING –s 172.16.2.0/28 –o ens192 –j MASQUERADE   
 iptables-save > /etc/iptables/rules.v4  
 ```
   
@@ -479,72 +479,25 @@ nano /etc/network/interfaces
 
 ```
 # The primary network interface
-auto ens192  
-iface ens192 inet static  
-address 172.16.4.2/28
-gateway 172.16.4.1
-
-auto gre1
-iface gre1 inet tunnel
-address 172.16.0.1
-netmask 255.255.255.252
-mode gre
-local 172.16.4.2
-endpoint 172.16.5.2
-ttl 64
-  
-auto ens224  
-iface ens224 inet static  
-address 192.168.100.1/26 
-  
-auto ens224:1  
-iface ens224:1 inet static  
-address 192.168.200.1/28
-
-auto ens224:2  
-iface ens224:2 inet static  
-address 192.168.99.9/29
-
-auto ens224.100  
-iface ens224.100 inet manual   
-Vlan-raw-device ens224  
-  
-auto ens224.200  
-iface ens224.200 inet manual   
-Vlan-raw-device ens224:1
-
-auto ens224.999  
-iface ens224.999 inet manual   
-Vlan-raw-device ens224:2
-
-2 варик
-
-allow-hotplug ens192
-iface ens192 inet static
-address 172.16.4.2/28
-gateway 172.16.4.1
-
-auto ens224
-iface ens224 inet static
-address 192.168.100.1
-netmask 255.255.255.240
-
-auto ens224:1
-iface ens224:1 inet static 
-address 192.168.200.1
-netmask 255.255.255.240
 
 auto ens224.100
-iface ens224:100 inet static
-address 192.168.100.3
-netmask 255.255.255.192
-vlan-raw-device ens224
+iface ens224.100 inet static
+address 192.168.1.3
+netmask 255.255.255.224
+Vlan-raw-device ens224
 
 auto ens224.200
-iface ens224:200 inet static
-address 192.168.200.3
-netmask 255.255.255.192
-vlan-raw-device ens224:1
+iface ens224.200 inet static
+address 192.168.2.2
+netmask 255.255.255.240
+Vlan-raw-device ens224
+
+auto ens224.99
+iface ens224.99 inet static
+address 192.168.99.1
+netmask 255.255.255.248
+Vlan-raw-device ens224
+
 ```
 
 </details>
@@ -647,8 +600,8 @@ iface gre1 inet tunnel
 address 172.16.0.1
 netmask 255.255.255.252
 mode gre
-local 172.16.4.2
-endpoint 172.16.5.2
+local 172.16.1.2
+endpoint 172.16.2.2
 ttl 64
 ```
 
@@ -678,8 +631,8 @@ iface gre1 inet tunnel
 address 172.16.0.2
 netmask 255.255.255.252
 mode gre
-local 172.16.5.2
-endpoint 172.16.4.2
+local 172.16.2.2
+endpoint 172.16.1.2
 ttl 64
 ```
 
@@ -748,16 +701,16 @@ systemctl enable --now frr
 vtysh
 ```
 
-**5.** Пишем команды для настройки **маршрутизации:**
+**5.** Пишем команды для настройки **маршрутизации HQ-RTR:**
  
 ```
 conf t
 router ospf
   passive-interface default
   router-id 1.1.1.1
-  network 172.16.0.0/30 area 0
-  network 192.168.100.0/26 area 1
-  network 192.168.200.0/28 area 2
+  network 172.16.0.0/28 area 0
+  network 192.168.1.0/28 area 1
+  network 192.168.2.0/28 area 2
   area 0 authentication
 exit
 
@@ -776,7 +729,7 @@ int gre1
 
 **1-4.** Пункты такие же как и в HQ-RTR
 
-**5.** Пишем команды для настройки **маршрутизации:**
+**5.** Пишем команды для настройки **маршрутизации BR-RTR:**
 
 **Меняется:** 
 
@@ -791,8 +744,8 @@ conf t
 router ospf
   passive-interface default
   router-id 2.2.2.2
-  network 192.168.0.0/27 area 3
-  network 172.16.0.0/30 area 0
+  network 192.168.0.0/28 area 3
+  network 172.16.0.0/28 area 0
   area 0 authentication
 exit
 
@@ -819,73 +772,6 @@ vtysh
 ```
 
 </details>
-
-<br/>
-
-
-<br/>
-Настройка маршрутов, если не работает <code><strong>OSPF</strong></code>:
-
-<br/>
-<details>
-<summary><strong>Настройка <code>маршрутов</code></strong></summary>
-<br/>
-
-После создания влана настраиваем маршрут для подсетей (чтобы они видели друг друга)  
-На роутере *HQ-RTR* настройка выглядит так:
-```
-sudo nano /etc/systemd/system/iproute.service
-```
-
-<br/>
-
-После чего добавляем текст:
-```
-[Unit]
-Description=iproute
-After=network.target
-
-[Service]
-Type=oneshot
-ExecStart=/sbin/ip route add 192.168.0.0/27 via 172.16.0.2 dev gre1
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-```
-
-<br/>
-
-На роутере *BR-RTR* создаем тот же файли настраивеим:
-```
-sudo nano /etc/systemd/system/iproute.service
-Для HQ-RTR:
-[Unit]
-Description=iproute
-After=network.target
-
-[Service]
-Type=oneshot
-ExecStart=/sbin/ip route add 192.168.100.0/26 via 172.16.0.1 dev gre1
-ExecStart=/sbin/ip route add 192.168.200.0/28 via 172.16.0.1 dev gre1
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-```
-
-<br/>
-
-После на обоих устройствах прописываем:
-```
-systemctl daemon-reload
-systemctl enable iproute.service
-systemctl start iproute.service
-```
-
-</details>
-
-<br/>
 
 ## ✔️ Задание 8 `[NAT на HQ-rtr и BR-rtr]`
 
@@ -914,8 +800,8 @@ systemctl start iproute.service
 ### Настройка динамической сетевой трансляции на `HQ-RTR`
 ```
 apt-get install iptables iptables-persistent –y
-iptables –t nat –A POSTROUTING –s 192.168.100.0/26 –o ens192 –j MASQUERADE
-iptables –t nat –A POSTROUTING –s 192.168.200.0/28 –o ens192 –j MASQUERADE
+iptables –t nat –A POSTROUTING –s 192.168.1.0/28 –o ens192 –j MASQUERADE
+iptables –t nat –A POSTROUTING –s 192.168.2.0/28 –o ens192 –j MASQUERADE
 netfilter-persistent save
 systemctl restart netfilter-persistent  
 ```
@@ -923,7 +809,7 @@ systemctl restart netfilter-persistent
 
 ```
 apt-get install iptables iptables-persistent –y
-iptables –t nat –A POSTROUTING –s 192.168.0.0/27 –o ens192 –j MASQUERADE
+iptables –t nat –A POSTROUTING –s 192.168.0.0/28 –o ens192 –j MASQUERADE
 netfilter-persistent save
 systemctl restart netfilter-persistent  
 ```
@@ -978,11 +864,11 @@ nano /etc/dhcp/dhcpd.conf
 ```
 
 ```
-subnet 192.168.200.0 netmask 255.255.255.240 {
-  range 192.168.200.2 192.168.200.14;
-  option domain-name-servers 192.168.100.62;
+subnet 192.168.2.0 netmask 255.255.255.240 {
+  range 192.168.2.2 192.168.2.14;
+  option domain-name-servers 192.168.1.2;
   option domain-name "au-team.irpo";
-  option routers 192.168.200.1;
+  option routers 192.168.2.1;
   default-lease-time 600;
   max-lease-time 7200;
 }
@@ -993,7 +879,7 @@ subnet 192.168.200.0 netmask 255.255.255.240 {
 ```
 nano /etc/default/isc-dhcp-server
 
-INTERFACESv4="ens224:1" - порт смотрящий в сторону CLI
+INTERFACESv4="ens224:200" - порт смотрящий в сторону CLI
 ```
 
 <br/>
@@ -1332,14 +1218,16 @@ netfilter-persistent save
 no-resolv
 interface=ens192
 read-ethers
-listen-address=192.168.100.62
+listen-address=192.168.1.2
 server=8.8.8.8
 server=8.8.4.4
-address=/hq-rtr.au-team.irpo/192.168.100.1
-address=/hq-srv.au-team.irpo/192.168.100.62
-address=/br-rtr.au-team.irpo/192.168.0.1
-address=/br-srv.au-team.irpo/192.168.0.2
-address=/hq-cli.au-team.irpo/192.168.200.3
+address=/hq-rtr.au-team.irpo/192.168.1.1
+address=/hq-srv.au-team.irpo/192.168.1.2
+address=/br-rtr.au-team.irpo/192.168.4.1
+address=/br-srv.au-team.irpo/192.168.4.2
+# Клиента лучше посмотреть
+address=/hq-cli.au-team.irpo/192.168.2.2
+# Клиента лучше посмотреть
 srv-host=_ldap._tcp.au-team.irpo,br-srv.au-team.irpo,389
 srv-host=_kerberos._tcp.au-team.irpo,br-srv.au-team.irpo,88
 srv-host=_kdc._tcp.au-team.irpo,br-srv.au-team.irpo,88
@@ -1354,11 +1242,13 @@ nano /etc/hosts
 ```
 127.0.0.1  localhost
 127.0.1.1  server.localdomain  server
-192.168.100.1  hq-rtr.au-team.irpo  hq-rtr
-192.168.100.62  hq-srv.au-team.irpo  hq-srv
-192.168.0.1  br-rtr.au-team.irpo  br-rtr
-192.168.0.2  br-srv.au-team.irpo  br-srv
+192.168.1.1  hq-rtr.au-team.irpo  hq-rtr
+192.168.1.2  hq-srv.au-team.irpo  hq-srv
+192.168.4.1  br-rtr.au-team.irpo  br-rtr
+192.168.4.2  br-srv.au-team.irpo  br-srv
+# Клиента лучше посмотрет
 192.168.200.3  hq-cli.au-team.irpo  hq-cli
+# Клиента лучше посмотрет
 ```
 
 Далее по окончанию настройки:
@@ -1369,7 +1259,7 @@ systemctl restart dnsmasq
 После чего, на ВСЕХ машинах, в конфигурационном файле `/etc/resolv.conf` добавляем строку:
 ```
 search au-team.irpo
-nameserver 192.168.100.62
+nameserver 192.168.1.2
 ```
 
 </details>
