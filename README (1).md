@@ -238,8 +238,8 @@ ttl 64
 ```
 allow-hotplug ens192
 iface ens192 inet static
-address 192.168.4.2/28
-gateway 192.168.4.1
+address 192.168.0.2/27
+gateway 192.168.0.1
 ```
 
 ### HQ-SRV:
@@ -247,7 +247,7 @@ gateway 192.168.4.1
 ```
 allow-hotplug ens192
 iface ens192 inet static
-address 192.168.1.2/27
+address 192.168.100.62/26
 gateway 192.168.100.1
 ```
 
@@ -473,23 +473,25 @@ nano /etc/network/interfaces
 ```
 # The primary network interface
 
-auto ens224.100
-iface ens224.100 inet static
-address 192.168.1.3
-netmask 255.255.255.224
-Vlan-raw-device ens224
+auto ens224:1  
+iface ens224:1 inet static  
+address 192.168.200.1/28
 
-auto ens224.200
-iface ens224.200 inet static
-address 192.168.2.2
-netmask 255.255.255.240
-Vlan-raw-device ens224
+auto ens224:2  
+iface ens224:2 inet static  
+address 192.168.99.9/29
 
-auto ens224.99
-iface ens224.99 inet static
-address 192.168.99.1
-netmask 255.255.255.248
-Vlan-raw-device ens224
+auto ens224.100  
+iface ens224.100 inet manual   
+Vlan-raw-device ens224  
+  
+auto ens224.200  
+iface ens224.200 inet manual   
+Vlan-raw-device ens224:1
+
+auto ens224.999  
+iface ens224.999 inet manual   
+Vlan-raw-device ens224:2
 
 ```
 
@@ -637,7 +639,7 @@ echo gre_ip >> /etc/modules
 systemctl restart networking
 ```
 
-Ping 10.10.0.1 и ping 10.10.0.2 для проверки работоспособности туннеля с обеих сторон:
+Ping 172.16.0.2 и ping 172.16.0.1 для проверки работоспособности туннеля с обеих сторон:
 </details>
 </br>
 
@@ -701,9 +703,9 @@ conf t
 router ospf
   passive-interface default
   router-id 1.1.1.1
-  network 172.16.0.0/28 area 0
-  network 192.168.1.0/28 area 1
-  network 192.168.2.0/28 area 2
+  network 172.16.0.0/30 area 0
+  network 192.168.100.0/26 area 1
+  network 192.168.200.0/28 area 2
   area 0 authentication
 exit
 
@@ -737,8 +739,8 @@ conf t
 router ospf
   passive-interface default
   router-id 2.2.2.2
-  network 192.168.0.0/28 area 3
-  network 172.16.0.0/28 area 0
+  network 192.168.0.0/27 area 3
+  network 172.16.0.0/30 area 0
   area 0 authentication
 exit
 
@@ -793,16 +795,16 @@ vtysh
 ### Настройка динамической сетевой трансляции на `HQ-RTR`
 ```
 apt-get install iptables iptables-persistent –y
-iptables –t nat –A POSTROUTING –s 192.168.1.0/28 –o ens192 –j MASQUERADE
-iptables –t nat –A POSTROUTING –s 192.168.2.0/28 –o ens192 –j MASQUERADE
+iptables –t nat –A POSTROUTING –s 192.168.100.0/26 –o ens192 –j MASQUERADE
+iptables –t nat –A POSTROUTING –s 192.168.200.0/28 –o ens192 –j MASQUERADE
 netfilter-persistent save
-systemctl restart netfilter-persistent  
+systemctl restart netfilter-persistent    
 ```
 ### Настройка динамической сетевой трансляции на `BR-RTR`
 
 ```
 apt-get install iptables iptables-persistent –y
-iptables –t nat –A POSTROUTING –s 192.168.0.0/28 –o ens192 –j MASQUERADE
+iptables –t nat –A POSTROUTING –s 192.168.0.0/27 –o ens192 –j MASQUERADE
 netfilter-persistent save
 systemctl restart netfilter-persistent  
 ```
@@ -857,11 +859,11 @@ nano /etc/dhcp/dhcpd.conf
 ```
 
 ```
-subnet 192.168.2.0 netmask 255.255.255.240 {
-  range 192.168.2.2 192.168.2.14;
-  option domain-name-servers 192.168.1.2;
+subnet 192.168.200.0 netmask 255.255.255.240 {
+  range 192.168.200.2 192.168.200.14;
+  option domain-name-servers 192.168.100.62;
   option domain-name "au-team.irpo";
-  option routers 192.168.2.1;
+  option routers 192.168.200.1;
   default-lease-time 600;
   max-lease-time 7200;
 }
@@ -1211,22 +1213,14 @@ netfilter-persistent save
 no-resolv
 interface=ens192
 read-ethers
-listen-address=192.168.1.2
+listen-address=192.168.100.62
 server=8.8.8.8
 server=8.8.4.4
-address=/hq-rtr.au-team.irpo/192.168.1.1
-address=/hq-srv.au-team.irpo/192.168.1.2
-address=/br-rtr.au-team.irpo/192.168.4.1
-address=/br-srv.au-team.irpo/192.168.4.2
-# Клиента лучше посмотреть
-address=/hq-cli.au-team.irpo/192.168.2.2
-# Клиента лучше посмотреть
-srv-host=_ldap._tcp.au-team.irpo,br-srv.au-team.irpo,389
-srv-host=_kerberos._tcp.au-team.irpo,br-srv.au-team.irpo,88
-srv-host=_kdc._tcp.au-team.irpo,br-srv.au-team.irpo,88
-srv-host=_kpasswd._tcp.au-team.irpo,br-srv.au-team.irpo,464
-cname=moodle.au-team.irpo,hq-rtr.au-team.irpo
-cname=wiki.au-team.irpo,br-rtr.au-team.irpo
+address=/hq-rtr.au-team.irpo/192.168.100.1
+address=/hq-srv.au-team.irpo/192.168.100.62
+address=/br-rtr.au-team.irpo/192.168.0.1
+address=/br-srv.au-team.irpo/192.168.0.2
+address=/hq-cli.au-team.irpo/192.168.200.3
 ```
 Далее в файле hosts на HQ-SRV правим:
 ```
@@ -1235,11 +1229,10 @@ nano /etc/hosts
 ```
 127.0.0.1  localhost
 127.0.1.1  server.localdomain  server
-192.168.1.1  hq-rtr.au-team.irpo  hq-rtr
-192.168.1.2  hq-srv.au-team.irpo  hq-srv
-192.168.4.1  br-rtr.au-team.irpo  br-rtr
-192.168.4.2  br-srv.au-team.irpo  br-srv
-# Клиента лучше посмотрет
+192.168.100.1  hq-rtr.au-team.irpo  hq-rtr
+192.168.100.62  hq-srv.au-team.irpo  hq-srv
+192.168.0.1  br-rtr.au-team.irpo  br-rtr
+192.168.0.2  br-srv.au-team.irpo  br-srv
 192.168.200.3  hq-cli.au-team.irpo  hq-cli
 # Клиента лучше посмотрет
 ```
@@ -1252,7 +1245,7 @@ systemctl restart dnsmasq
 После чего, на ВСЕХ машинах, в конфигурационном файле `/etc/resolv.conf` добавляем строку:
 ```
 search au-team.irpo
-nameserver 192.168.1.2
+nameserver 192.168.100.62
 ```
 
 </details>
