@@ -110,3 +110,133 @@ systemctl restart httpd
 bash
 curl http://localhost
 # Или через браузер http://HQ-SRV-IP/
+
+
+8 задание
+1. Статическая трансляция портов (DNAT)
+На BR-RTR (проброс на BR-SRV)
+Интерфейс «смотрит во внешнюю сеть» — ens192 (address 172.16.2.2/28, gateway 172.16.2.1).
+Внутренний сервер BR-SRV — 192.168.0.2.
+
+Правила iptables (добавить в автозагрузку, например, через pre-up в /etc/network/interfaces или отдельный скрипт):
+
+bash
+# Проброс порта 8080 → 8080 на testapp (BR-SRV)
+iptables -t nat -A PREROUTING -i ens192 -p tcp --dport 8080 -j DNAT --to-destination 192.168.0.2:8080
+
+# Проброс порта 2026 → 2026 (SSH) на BR-SRV
+iptables -t nat -A PREROUTING -i ens192 -p tcp --dport 2026 -j DNAT --to-destination 192.168.0.2:2026
+
+# Разрешить форвардинг (если не включён)
+iptables -A FORWARD -p tcp -d 192.168.0.2 --dport 8080 -j ACCEPT
+iptables -A FORWARD -p tcp -d 192.168.0.2 --dport 2026 -j ACCEPT
+Чтобы правила сохранялись (пример для Debian/Ubuntu):
+
+bash
+apt install iptables-persistent
+iptables-save > /etc/iptables/rules.v4
+На HQ-RTR (проброс на HQ-SRV)
+Интерфейс наружу — ens192 (172.16.1.2/28, gateway 172.16.1.1).
+Внутренний сервер HQ-SRV — 192.168.1.2.
+
+bash
+# Проброс порта 8080 → 80 (Apache) на HQ-SRV
+iptables -t nat -A PREROUTING -i ens192 -p tcp --dport 8080 -j DNAT --to-destination 192.168.1.2:80
+
+# Проброс порта 2026 → 2026 (SSH) на HQ-SRV
+iptables -t nat -A PREROUTING -i ens192 -p tcp --dport 2026 -j DNAT --to-destination 192.168.1.2:2026
+
+# FORWARD правила
+iptables -A FORWARD -p tcp -d 192.168.1.2 --dport 80 -j ACCEPT
+iptables -A FORWARD -p tcp -d 192.168.1.2 --dport 2026 -j ACCEPT
+Важно: На BR-SRV и HQ-SRV SSH должен слушать порт 2026 (измените Port 2026 в /etc/ssh/sshd_config и перезапустите sshd).
+
+2. Настройка nginx как обратного прокси на ISP
+Предполагается, что ISP имеет доступ к маршрутизаторам BR-RTR (172.16.2.1) и HQ-RTR (172.16.1.1) через сеть 172.16.x.x.
+На ISP устанавливаем nginx:
+
+bash
+apt update && apt install nginx apache2-utils -y
+Конфигурация виртуальных хостов
+Создайте файл /etc/nginx/sites-available/proxy.conf:
+
+nginx
+# Первый домен → HQ-SRV (порт 8080 на HQ-RTR)
+server {
+    listen 80;
+    server_name web.au-team.irpo;
+
+    location / {
+        proxy_pass http://172.16.1.1:8080;   # запрос идёт на HQ-RTR, который DNATит на HQ-SRV:80
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+# Второй домен → BR-SRV testapp (порт 8080 на BR-RTR)
+server {
+    listen 80;
+    server_name docker.au-team.irpo;
+
+    location / {
+        proxy_pass http://172.16.2.1:8080;   # на BR-RTR, который DNATит на BR-SRV:8080
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+Активируем конфигурацию:
+
+bash
+ln -s /etc/nginx/sites-available/proxy.conf /etc/nginx/sites-enabled/
+rm /etc/nginx/sites-enabled/default   # если мешает
+nginx -t && systemctl reload nginx
+3. Web‑аутентификация для web.au-team.irpo
+Шаг 1. Создать файл .htpasswd
+bash
+htpasswd -c /etc/nginx/.htpasswd WEB
+# Введите пароль: P@ssw0rd
+Шаг 2. Добавить auth_basic в соответствующий server блок
+Отредактируйте /etc/nginx/sites-available/proxy.conf:
+
+nginx
+server {
+    listen 80;
+    server_name web.au-team.irpo;
+
+    auth_basic "Restricted Access";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
+    location / {
+        proxy_pass http://172.16.1.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+Шаг 3. Проверить и перезагрузить nginx
+bash
+nginx -t && systemctl reload nginx
+Теперь при обращении к http://web.au-team.irpo браузер запросит логин WEB и пароль P@ssw0rd.
+
+4. Дополнительные замечания по сети
+Маршрутизация между HQ-RTR и BR-RTR через GRE
+У вас уже настроен GRE-туннель с IP 172.16.0.1/30 (HQ-RTR) и 172.16.0.2/30 (BR-RTR).
+Для работы пробросов через ISP добавьте на ISP маршруты к сетям 192.168.x.x через соответствующие шлюзы:
+
+bash
+# На ISP
+ip route add 192.168.1.0/28 via 172.16.1.1   # сеть HQ-SRV
+ip route add 192.168.0.0/28 via 172.16.2.1   # сеть BR-SRV
+Если необходимо, чтобы ISP видел домены – настройте локальный DNS или добавьте записи в /etc/hosts на ISP:
+
+text
+172.16.1.1    web.au-team.irpo
+172.16.2.1    docker.au-team.irpo
+5. Проверка работоспособности
+Что проверяем	Команда / действие	Ожидаемый результат
+Проброс на BR-SRV:8080	curl http://172.16.2.1:8080 с ISP	Страница testapp
+Проброс на HQ-SRV:80	curl http://172.16.1.1:8080 с ISP	Страница index.php
+SSH через порт 2026	ssh -p 2026 user@172.16.1.1	Подключение к HQ-SRV
+SSH через порт 2026 на BR	ssh -p 2026 user@172.16.2.1	Подключение к BR-SRV
+Прокси с аутентификацией	curl -u WEB:P@ssw0rd http://web.au-team.irpo	Содержимое сайта
+Прокси без аутентификации	curl http://web.au-team.irpo	Ошибка 401
+Прокси для docker.au-team.irpo	curl http://docker.au-team.irpo	Страница testapp
