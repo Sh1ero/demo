@@ -1,0 +1,112 @@
+1. Импорт образов из Additional.iso
+Сначала смонтируйте ISO и импортируйте образы:
+
+bash
+# Монтируем ISO
+mkdir /mnt/iso
+mount -o loop /path/to/Additional.iso /mnt/iso
+
+# Импортируем образы
+docker load -i /mnt/iso/docker/site_latest.tar
+docker load -i /mnt/iso/docker/mariadb_latest.tar
+
+# Проверяем
+docker images | grep -E "site_latest|mariadb_latest"
+Если файлы .tar — используйте docker load. Если директория с образами — возможно, docker import.
+
+2. Файл docker-compose.yml
+yaml
+version: '3.8'
+
+services:
+  testapp:
+    image: site_latest
+    container_name: tespapp   # по условию testapp → tespapp (оставляем как в задании)
+    ports:
+      - "8080:80"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=testdb
+      - DB_USER=test
+      - DB_PASSWORD=P@ssw0rd
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: mariadb_latest
+    container_name: db
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass   # можно задать
+      - MYSQL_DATABASE=testdb
+      - MYSQL_USER=test
+      - MYSQL_PASSWORD=P@ssw0rd
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  db_data:
+Примечание: если приложению нужны другие параметры (например DB_PORT, DB_DRIVER) — добавьте в environment для testapp.
+
+3. Запуск стека
+bash
+docker-compose up -d
+4. Проверка
+bash
+docker ps
+curl http://localhost:8080
+# Или с внешнего IP: http://BR-SRV-IP:8080
+
+ Установка Apache и MariaDB
+bash
+# Для RHEL/CentOS/Rocky
+dnf install httpd mariadb-server php php-mysqlnd -y
+
+# Для Ubuntu/Debian
+apt update && apt install apache2 mariadb-server php php-mysqlnd -y
+2. Подготовка БД
+bash
+systemctl start mariadb
+mysql
+Выполните SQL:
+
+sql
+CREATE DATABASE webdb;
+CREATE USER 'web'@'localhost' IDENTIFIED BY 'P@ssw0rd';
+GRANT ALL PRIVILEGES ON webdb.* TO 'web'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+3. Импорт дампа из ISO
+Смонтируйте ISO (если ещё не смонтирован):
+
+bash
+mount -o loop /path/to/Additional.iso /mnt/iso
+cd /mnt/iso/web
+mysql -u web -p webdb < dump.sql
+# пароль P@ssw0rd
+4. Копирование файлов приложения
+bash
+cp /mnt/iso/web/index.php /var/www/html/
+cp -r /mnt/iso/web/images /var/www/html/
+chown -R apache:apache /var/www/html   # или www-data:www-data для Debian
+Если Apache использует другой DocumentRoot (/var/www), уточните по месту.
+
+5. Настройка подключения к БД в index.php
+Отредактируйте /var/www/html/index.php. Найдите секцию подключения и приведите к виду:
+
+php
+$db_host = 'localhost';   // или 127.0.0.1
+$db_name = 'webdb';
+$db_user = 'web';
+$db_pass = 'P@ssw0rd';
+
+$conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
+6. Запуск веб-сервера
+bash
+systemctl enable --now httpd   # или apache2
+systemctl restart httpd
+7. Проверка работоспособности
+bash
+curl http://localhost
+# Или через браузер http://HQ-SRV-IP/
